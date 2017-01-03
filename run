@@ -1,0 +1,66 @@
+#! /bin/bash
+# This script is meant to evoke the algorithm without requiring any input arguments
+#
+
+# Define directory names and containers
+FLYWHEEL_BASE=/flywheel/v0
+INPUT_DIR=$FLYWHEEL_BASE/input/anatomical
+OUTPUT_DIR=$FLYWHEEL_BASE/output
+CONTAINER='[flywheel/mri-deface]'
+
+# Define brain and face templates
+brain_template=$FLYWHEEL_BASE/talairach_mixed_with_skull.gca
+face_template=$FLYWHEEL_BASE/face.gca
+
+# Check if the input directory is not empty
+if [[ "$(ls -A $INPUT_DIR)" ]] ; then
+    echo "$CONTAINER  Starting..."
+else
+    echo "Input directory is empty: $INPUT_DIR"
+    exit 1
+fi
+
+# Check if output directory exists
+#   If exists and is not empty, error raised
+#   If it does not exist, it is created
+if [ "-d" "$OUTPUT_DIR" ]
+    then
+        if [ "$(ls -A $OUTPUT_DIR)" ]; then
+            echo -e "$OUTPUT_DIR is not empty! Please provide an empty directory and mount at '$OUTPUT_DIR'."
+            exit 1
+        fi
+    else
+        echo "$OUTPUT_DIR not found. It will be created."
+        mkdir $OUTPUT_DIR
+fi
+
+# Find input file in input directory with the extension .nii, .nii.gz or .mgz
+input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz'`
+
+if [[ -e $input_file ]]
+    then
+        # Determine extension of the input file and define output file to be passed to mri_deface
+        bni=`basename "$input_file"`
+        filename="${bni%%.*}"
+        extension="${bni#*.}"
+        output_file=$OUTPUT_DIR/$filename'_deface.'$extension
+        /flywheel/v0/mri_deface "$input_file" $brain_template $face_template "$output_file"
+    else
+        echo "No Nifti or MGZ inputs were found within input directory $INPUT_DIR"
+        exit 1
+fi
+
+# Get a list of the files in the output directory
+outputs=`find $OUTPUT_DIR -type f -name "*"`
+
+# If outputs exist, then go on...
+if [[ -z $outputs ]]
+    then
+        echo "No results found in output directory... Exiting"
+        exit 1
+    else
+        chmod -R 777 $OUTPUT_DIR
+        echo -e "Wrote: `ls $OUTPUT_DIR`"
+fi
+
+exit 0

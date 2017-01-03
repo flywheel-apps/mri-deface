@@ -1,0 +1,21 @@
+{
+    "author": "Jennifer Reiter <jenniferreiter@invenshure.com", 
+    "config": {}, 
+    "description": "The gear uses the mri_deface tool from Free Surfer to deface an MRI image.", 
+    "inputs": {
+        "anatomical": {
+            "base": "file", 
+            "type": {
+                "enum": [
+                    "nifti"
+                ]
+            }
+        }
+    }, 
+    "label": "MRI Defacing Gear", 
+    "license": "GPL-2.0", 
+    "name": "mri-deface", 
+    "source": "https://github.com/jenreiter/mri-deface", 
+    "url": "https://github.com/flywheel-apps/mri-deface", 
+    "version": "0.1.0"
+}
