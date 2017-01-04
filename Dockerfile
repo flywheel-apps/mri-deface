@@ -1,13 +1,4 @@
 # flywheel/mri-deface
-#
-#
-# Example usage:
-#   docker run --rm -ti \
-#        -v /path/to/mri/data:/data \
-#        flywheel/mri-deface \
-#        <input filename> \
-#        <output filename>
-
 
 # start with ubuntu
 FROM ubuntu:trusty
