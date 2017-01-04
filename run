@@ -34,8 +34,8 @@ if [ "-d" "$OUTPUT_DIR" ]
         mkdir $OUTPUT_DIR
 fi
 
-# Find input file in input directory with the extension .nii, .nii.gz or .mgz
-input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz'`
+# Find input file in input directory with the extension .nii, .nii.gz, .mgz or .mgh.gz
+input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz' -o -iname '*.mgh.gz'`
 
 if [[ -e $input_file ]]
     then
