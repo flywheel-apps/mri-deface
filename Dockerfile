@@ -6,7 +6,7 @@ MAINTAINER Jennifer Reiter <jenniferreiter@invenshure.com>
 
 # Install gzip and wget
 RUN apt-get update \
-    && apt-get -y install gzip wget
+    && apt-get -y install unzip gzip wget
 # Download Free Surfer Deface from MGH
 RUN cd /opt && wget ftp://surfer.nmr.mgh.harvard.edu/pub/dist/mri_deface/mri_deface-v1.22-Linux64.gz
 # Download additional files needed for Defacing algorithm
