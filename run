@@ -6,6 +6,7 @@
 FLYWHEEL_BASE=/flywheel/v0
 INPUT_DIR=$FLYWHEEL_BASE/input/anatomical
 OUTPUT_DIR=$FLYWHEEL_BASE/output
+CONFIG_FILE=$FLYWHEEL_BASE/config.json
 CONTAINER='[flywheel/mri-deface]'
 
 # Define brain and face templates
@@ -52,10 +53,18 @@ if [[ -e $input_file ]]
                 # Now that the DICOM files are unzipped, need to find one filename to pass to the mri deface software
                 input_file=`find $INPUT_DIR -iname '*.dcm' | head -n 1`
         fi
-
         ## Define extension of the output file
-        # TODO: Get output extension filename from config file
-        outextension="nii.gz"
+        # Get output file extension from config file, if it exists
+        if [[ -e $CONFIG_FILE ]]
+            then
+                echo "Config file is present"
+                outextension=`cat $CONFIG_FILE | jq '.config.output_extension'`
+                echo "The extension read from the config file: $outextension"
+            # Otherwise, define output file extension as nifti (.nii.gz)
+            else
+                outextension="nii.gz"
+                echo "No config file found, so default extension ($outextension) is being used for output"
+        fi
         #  define output file to be passed to mri_deface
         output_file=$OUTPUT_DIR/$filename'_deface.'$outextension
         /flywheel/v0/mri_deface $input_file $brain_template $face_template $output_file
