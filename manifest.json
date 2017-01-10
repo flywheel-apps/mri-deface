@@ -1,6 +1,11 @@
 {
     "author": "Jennifer Reiter <jenniferreiter@invenshure.com", 
-    "config": {}, 
+    "config": {
+        "output_extension": {
+            "description": "Desired extension of output file. Value can be either .mgz or .nii.gz", 
+            "type": "string"
+        }
+    }, 
     "description": "The gear uses the mri_deface tool from Free Surfer to deface an MRI image.", 
     "inputs": {
         "anatomical": {
@@ -8,7 +13,8 @@
             "type": {
                 "enum": [
                     "nifti", 
-                    "mgh"
+                    "mgh", 
+                    "dicom"
                 ]
             }
         }
