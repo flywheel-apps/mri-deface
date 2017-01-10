@@ -24,6 +24,10 @@ RUN mkdir -p ${FLYWHEEL}
 COPY run ${FLYWHEEL}/run
 COPY manifest.json ${FLYWHEEL}/manifest.json
 
+# Install jq to parse the JSON config file
+RUN cd /usr/bin && wget http://stedolan.github.io/jq/download/linux64/jq
+RUN chmod +x /usr/bin/jq
+
 # Copy all files over to /flywheel/v0 and rename mri_deface-v1.22-Linux to mri_deface
 RUN cp /opt/talairach_mixed_with_skull.gca /flywheel/v0
 RUN cp /opt/face.gca /flywheel/v0
