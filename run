@@ -1,89 +1,78 @@
 #! /bin/bash
 # This script is meant to evoke the algorithm without requiring any input arguments
 #
+LOG_FILE=/flywheel/v0/output/mri-deface.log
 
-# Define directory names and containers
-FLYWHEEL_BASE=/flywheel/v0
-INPUT_DIR=$FLYWHEEL_BASE/input/anatomical
-OUTPUT_DIR=$FLYWHEEL_BASE/output
-CONFIG_FILE=$FLYWHEEL_BASE/config.json
-CONTAINER='[flywheel/mri-deface]'
+(
+  # Define directory names and containers
+  FLYWHEEL_BASE=/flywheel/v0
+  INPUT_DIR=$FLYWHEEL_BASE/input/anatomical
+  OUTPUT_DIR=$FLYWHEEL_BASE/output
+  CONFIG_FILE=$FLYWHEEL_BASE/config.json
+  CONTAINER='[flywheel/mri-deface]'
 
-# Define brain and face templates
-brain_template=$FLYWHEEL_BASE/talairach_mixed_with_skull.gca
-face_template=$FLYWHEEL_BASE/face.gca
+  # Define brain and face templates
+  brain_template=$FLYWHEEL_BASE/talairach_mixed_with_skull.gca
+  face_template=$FLYWHEEL_BASE/face.gca
 
-# Check if the input directory is not empty
-if [[ "$(ls -A $INPUT_DIR)" ]] ; then
-    echo "$CONTAINER  Starting..."
-else
-    echo "Input directory is empty: $INPUT_DIR"
-    exit 1
-fi
+  # Check if the input directory is not empty
+  if [[ "$(ls -A $INPUT_DIR)" ]] ; then
+      echo "$CONTAINER  Starting..."
+  else
+      echo "Input directory is empty: $INPUT_DIR"
+      exit 1
+  fi
 
-# Check if output directory exists
-#   If exists and is not empty, error raised
-#   If it does not exist, it is created
-if [ "-d" "$OUTPUT_DIR" ]
-    then
-        if [ "$(ls -A $OUTPUT_DIR)" ]; then
-            echo -e "$OUTPUT_DIR is not empty. Please provide an empty directory and mount at '$OUTPUT_DIR'."
-            exit 1
-        fi
-    else
-        echo "$OUTPUT_DIR not found. It will be created."
-        mkdir $OUTPUT_DIR
-fi
+  # Find input file in input directory with the extension .nii, .nii.gz, .mgz or .mgh.gz or a .zip dicom file
+  input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz' -o -iname '*.mgh.gz' -o -iname '*.zip'`
 
-# Find input file in input directory with the extension .nii, .nii.gz, .mgz or .mgh.gz or a .zip dicom file
-input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz' -o -iname '*.mgh.gz' -o -iname '*.zip'`
+  # Check if input file exists
+  if [[ -e $input_file ]]
+      then
+          ## Define extension of the input file
+          bni=`basename "$input_file"`
+          filename="${bni%%.*}"
+          inextension="${bni#*.}"
+          # If input extension is .zip, then unzip the files (assuming they are DICOM files)
+          if [[ $inextension == "zip" ]]
+              then
+                  echo "Unzipping DICOM files"
+                  unzip $input_file -d $INPUT_DIR
+                  # Now that the DICOM files are unzipped, need to find one filename to pass to the mri deface software
+                  input_file=`find $INPUT_DIR -iname '*.dcm' | head -n 1`
+          fi
+          ## Define extension of the output file
+          # Get output file extension from config file, if it exists
+          if [[ -e $CONFIG_FILE ]]
+              then
+                  echo "Config file is present"
+                  outextension=`cat $CONFIG_FILE | jq '.config.output_extension'`
+                  echo "The extension read from the config file: $outextension"
+              # Otherwise, define output file extension as nifti (.nii.gz)
+              else
+                  outextension="nii.gz"
+                  echo "No config file found, so default extension ($outextension) is being used for output"
+          fi
+          # Define output file to be passed to mri_deface
+          output_file=$OUTPUT_DIR/$filename'_deface.'$outextension
+          /flywheel/v0/mri_deface $input_file $brain_template $face_template $output_file
+      else
+          echo "No Nifti, DICOM or MGZ inputs were found within input directory $INPUT_DIR"
+          exit 1
+  fi
 
-# Check if input file exists
-if [[ -e $input_file ]]
-    then
-        ## Define extension of the input file
-        bni=`basename "$input_file"`
-        filename="${bni%%.*}"
-        inextension="${bni#*.}"
-        # If input extension is .zip, then unzip the files (assuming they are DICOM files)
-        if [[ $inextension == "zip" ]]
-            then
-                echo "Unzipping DICOM files"
-                unzip $input_file -d $INPUT_DIR
-                # Now that the DICOM files are unzipped, need to find one filename to pass to the mri deface software
-                input_file=`find $INPUT_DIR -iname '*.dcm' | head -n 1`
-        fi
-        ## Define extension of the output file
-        # Get output file extension from config file, if it exists
-        if [[ -e $CONFIG_FILE ]]
-            then
-                echo "Config file is present"
-                outextension=`cat $CONFIG_FILE | jq '.config.output_extension'`
-                echo "The extension read from the config file: $outextension"
-            # Otherwise, define output file extension as nifti (.nii.gz)
-            else
-                outextension="nii.gz"
-                echo "No config file found, so default extension ($outextension) is being used for output"
-        fi
-        #  define output file to be passed to mri_deface
-        output_file=$OUTPUT_DIR/$filename'_deface.'$outextension
-        /flywheel/v0/mri_deface $input_file $brain_template $face_template $output_file
-    else
-        echo "No Nifti, DICOM or MGZ inputs were found within input directory $INPUT_DIR"
-        exit 1
-fi
+  # Get a list of the files in the output directory
+  outputs=`find $OUTPUT_DIR -type f -name "*"`
 
-# Get a list of the files in the output directory
-outputs=`find $OUTPUT_DIR -type f -name "*"`
+  # If outputs exist, then go on...
+  if [[ -z $outputs ]]
+      then
+          echo "No results found in output directory... Exiting"
+          exit 1
+      else
+          chmod -R 777 $OUTPUT_DIR
+          echo -e "Wrote: `ls $OUTPUT_DIR`"
+  fi
 
-# If outputs exist, then go on...
-if [[ -z $outputs ]]
-    then
-        echo "No results found in output directory... Exiting"
-        exit 1
-    else
-        chmod -R 777 $OUTPUT_DIR
-        echo -e "Wrote: `ls $OUTPUT_DIR`"
-fi
-
-exit 0
+  exit 0
+) 2>&1 | tee $LOG_FILE
