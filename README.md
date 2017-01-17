@@ -1,5 +1,5 @@
-[![Docker Pulls](https://img.shields.io/docker/pulls/flywheel/mri_deface.svg)](https://hub.docker.com/r/flywheel/mri_deface/)
-[![Docker Stars](https://img.shields.io/docker/stars/flywheel/mri_deface.svg)](https://hub.docker.com/r/flywheel/mri_deface/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/flywheel/mri-deface.svg)](https://hub.docker.com/r/flywheel/mri-deface/)
+[![Docker Stars](https://img.shields.io/docker/stars/flywheel/mri-deface.svg)](https://hub.docker.com/r/flywheel/mri-deface/)
 # flywheel/mri-deface
 
 Build context for a [Flywheel Gear](https://github.com/flywheel-io/gears/tree/master/spec) which runs the MBIRN `mri_deface` tool (v1.22) from FreeSurfer.
