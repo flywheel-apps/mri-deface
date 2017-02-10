@@ -46,15 +46,15 @@ LOG_FILE=/flywheel/v0/output/mri-deface.log
           if [[ -e $CONFIG_FILE ]]
               then
                   echo "Config file is present"
-                  outextension=`cat $CONFIG_FILE | jq '.config.output_extension'`
+                  outextension=`cat $CONFIG_FILE | jq -r '.config.output_extension'`
                   echo "The extension read from the config file: $outextension"
               # Otherwise, define output file extension as nifti (.nii.gz)
               else
-                  outextension="nii.gz"
+                  outextension=".nii.gz"
                   echo "No config file found, so default extension ($outextension) is being used for output"
           fi
           # Define output file to be passed to mri_deface
-          output_file=$OUTPUT_DIR/$filename'_deface.'$outextension
+          output_file=$OUTPUT_DIR/$filename'_deface'$outextension
           /flywheel/v0/mri_deface $input_file $brain_template $face_template $output_file
       else
           echo "No Nifti, DICOM or MGZ inputs were found within input directory $INPUT_DIR"
