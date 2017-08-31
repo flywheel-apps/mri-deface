@@ -80,6 +80,7 @@ if [[ "$type" == *.zip  ]]; then
   input_file=`find $unzip_dir/* -type f | head -n 1`
   if [[ -e $input_file ]]; then
     echo "$CONTAINER  Input file set to: $input_file"
+    base_filename=`basename "$base_filename" .dicom`
   else
     echo "${CONTAINER}  No input file found in: ${input_file}"
     exit 1
