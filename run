@@ -72,7 +72,7 @@ fi
 # If input extension is .zip, then unzip the files (assuming they are DICOM files)
 if [[ "$type" == *.zip  ]]; then
   echo "${CONTAINER} Unzipping DICOM files..."
-  unzip_dir=$INPUT_DIR/unzipped
+  unzip_dir=/tmp/unzipped
   unzip $input_file -d $unzip_dir
 
   # Now that the DICOM files are unzipped, need to find the full path to the
