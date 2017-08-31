@@ -1,78 +1,123 @@
 #! /bin/bash
-# This script is meant to evoke the algorithm without requiring any input arguments
 #
-LOG_FILE=/flywheel/v0/output/mri-deface.log
+# Run script for flywheel/mri-deface Gear.
+#
+# Authorship: Jennifer Reiter, Michael Perry
+#
 
-(
-  # Define directory names and containers
-  FLYWHEEL_BASE=/flywheel/v0
-  INPUT_DIR=$FLYWHEEL_BASE/input/anatomical
-  OUTPUT_DIR=$FLYWHEEL_BASE/output
-  CONFIG_FILE=$FLYWHEEL_BASE/config.json
-  CONTAINER='[flywheel/mri-deface]'
+##############################################################################
+# Define directory names and containers
 
-  # Define brain and face templates
-  brain_template=$FLYWHEEL_BASE/talairach_mixed_with_skull.gca
-  face_template=$FLYWHEEL_BASE/face.gca
+FLYWHEEL_BASE=/flywheel/v0
+INPUT_DIR=$FLYWHEEL_BASE/input/anatomical
+OUTPUT_DIR=$FLYWHEEL_BASE/output
+CONFIG_FILE=$FLYWHEEL_BASE/config.json
+CONTAINER='[flywheel/mri-deface]'
 
-  # Check if the input directory is not empty
-  if [[ "$(ls -A $INPUT_DIR)" ]] ; then
-      echo "$CONTAINER  Starting..."
+
+##############################################################################
+# Parse configuration options
+
+# If config.json exists, then we parse config file and cast vals to ENV Vars
+# (Flywheel gear run). Otherwise we parse manifest.json and cast the values to
+# ENV Vars from manifest (Docker run) Note value.default is used to grab the
+# configured defaults.
+
+if [[ -f $CONFIG_FILE ]]; then
+  eval $(jq -r '.config | to_entries[] | "config_\(.key)=\(.value)"' $CONFIG_FILE)
+else
+  CONFIG_FILE=$FLYWHEEL_BASE/manifest.json
+  eval $(jq -r '.config | to_entries[] | "config_\(.key)=\(.value.default)"' $CONFIG_FILE)
+fi
+
+
+##############################################################################
+# Define brain and face templates
+
+brain_template=$FLYWHEEL_BASE/talairach_mixed_with_skull.gca
+face_template=$FLYWHEEL_BASE/face.gca
+
+
+##############################################################################
+# Handle INPUT file
+
+# Find input file In input directory with the extension
+# .nii, .nii.gz, .mgz or .mgh.gz or a .zip DICOM file
+input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz' -o -iname '*.mgh.gz' -o -iname '*.zip'`
+
+# Check that input file exists
+if [[ -e $input_file ]]; then
+  echo "${CONTAINER}  Input file found: ${input_file}"
+
+  # Determine the type of the input file
+  if [[ "$input_file" == *.zip ]]; then
+    type=".zip"
+  elif [[ "$input_file" == *.nii ]]; then
+    type=".nii"
+  elif [[ "$input_file" == *.nii.gz ]]; then
+    type=".nii.gz"
+  elif [[ "$input_file" == *.mgz ]]; then
+    type=".mgz"
+  elif [[ "$input_file" == *.mgz.gz ]]; then
+    type=".mgz.gz"
+  fi
+
+  # Get the base filename
+  base_filename=`basename "$input_file" $type`
+else
+  echo "${CONTAINER} No Nifti, DICOM or MGZ inputs were found within input directory $INPUT_DIR"
+  exit 1
+fi
+
+# If input extension is .zip, then unzip the files (assuming they are DICOM files)
+if [[ "$type" == *.zip  ]]; then
+  echo "${CONTAINER} Unzipping DICOM files..."
+  unzip_dir=/tmp/unzipped
+  unzip $input_file -d $unzip_dir
+
+  # Now that the DICOM files are unzipped, need to find the full path to the
+  # first file to pass mri_deface
+  input_file=`find $unzip_dir/* -type f | head -n 1`
+  if [[ -e $input_file ]]; then
+    echo "$CONTAINER  Input file set to: $input_file"
+    base_filename=`basename "$base_filename" .dicom`
   else
-      echo "Input directory is empty: $INPUT_DIR"
-      exit 1
+    echo "${CONTAINER}  No input file found in: ${input_file}"
+    exit 1
   fi
+fi
 
-  # Find input file in input directory with the extension .nii, .nii.gz, .mgz or .mgh.gz or a .zip dicom file
-  input_file=`find $INPUT_DIR -iname '*.nii' -o -iname '*.nii.gz' -o -iname '*.mgz' -o -iname '*.mgh.gz' -o -iname '*.zip'`
 
-  # Check if input file exists
-  if [[ -e $input_file ]]
-      then
-          ## Define extension of the input file
-          bni=`basename "$input_file"`
-          filename="${bni%%.*}"
-          inextension="${bni#*.}"
-          # If input extension is .zip, then unzip the files (assuming they are DICOM files)
-          if [[ $inextension == "zip" ]]
-              then
-                  echo "Unzipping DICOM files"
-                  unzip $input_file -d $INPUT_DIR
-                  # Now that the DICOM files are unzipped, need to find one filename to pass to the mri deface software
-                  input_file=`find $INPUT_DIR -iname '*.dcm' | head -n 1`
-          fi
-          ## Define extension of the output file
-          # Get output file extension from config file, if it exists
-          if [[ -e $CONFIG_FILE ]]
-              then
-                  echo "Config file is present"
-                  outextension=`cat $CONFIG_FILE | jq -r '.config.output_extension'`
-                  echo "The extension read from the config file: $outextension"
-              # Otherwise, define output file extension as nifti (.nii.gz)
-              else
-                  outextension=".nii.gz"
-                  echo "No config file found, so default extension ($outextension) is being used for output"
-          fi
-          # Define output file to be passed to mri_deface
-          output_file=$OUTPUT_DIR/$filename'_deface'$outextension
-          /flywheel/v0/mri_deface $input_file $brain_template $face_template $output_file
-      else
-          echo "No Nifti, DICOM or MGZ inputs were found within input directory $INPUT_DIR"
-          exit 1
-  fi
+##############################################################################
+# Run MRI_DEFACE algorithm
 
-  # Get a list of the files in the output directory
-  outputs=`find $OUTPUT_DIR -type f -name "*"`
+# Set initial exit status
+mri_deface_exit_status_nifti=0
+mri_deface_exit_status_mgz=0
 
-  # If outputs exist, then go on...
-  if [[ -z $outputs ]]
-      then
-          echo "No results found in output directory... Exiting"
-          exit 1
-      else
-          chmod -R 777 $OUTPUT_DIR
-          echo -e "Wrote: `ls $OUTPUT_DIR`"
-  fi
+# Set base output_file name
+output_file=$OUTPUT_DIR/"$base_filename"'_deface'
 
+# Check if user wanted NIfTI output
+if [[ $config_output_nifti == 'true' ]]; then
+  /flywheel/v0/mri_deface "$input_file" "$brain_template" "$face_template" "$output_file"'.nii.gz'
+  mri_deface_exit_status_nifti=$?
+fi
+
+# Check if user wanted MGH output
+if [[ $config_output_mgh == 'true' ]]; then
+  /flywheel/v0/mri_deface "$input_file" "$brain_template" "$face_template" "$output_file"'.mgz'
+  mri_deface_exit_status_mgz=$?
+fi
+
+
+##############################################################################
+# Handle Exit status
+
+if [[ $mri_deface_exit_status_nifti == 0 ]] && [[ $mri_deface_exit_status_mgz == 0 ]]; then
+  echo -e "${CONTAINER} Success!"
   exit 0
-) 2>&1 | tee $LOG_FILE
+else
+  echo "${CONTAINER}  Something went wrong! mri_deface exited non-zero!"
+  exit 1
+fi
