@@ -35,5 +35,8 @@
   "version": "0.3.0_1.22",
   "custom": {
     "docker-image": "flywheel/mri-deface:0.3.0_1.22"
+  },
+  "flywheel": {
+    "suite": "FreeSurfer"
   }
 }
