@@ -16,19 +16,23 @@ CONTAINER='[flywheel/mri-deface]'
 
 
 ##############################################################################
-# Parse configuration options
+# Parse configuration
 
-# If config.json exists, then we parse config file and cast vals to ENV Vars
-# (Flywheel gear run). Otherwise we parse manifest.json and cast the values to
-# ENV Vars from manifest (Docker run) Note value.default is used to grab the
-# configured defaults.
+function parse_config {
 
-if [[ -f $CONFIG_FILE ]]; then
-  eval $(jq -r '.config | to_entries[] | "config_\(.key)=\(.value)"' $CONFIG_FILE)
-else
-  CONFIG_FILE=$FLYWHEEL_BASE/manifest.json
-  eval $(jq -r '.config | to_entries[] | "config_\(.key)=\(.value.default)"' $CONFIG_FILE)
-fi
+  CONFIG_FILE=$FLYWHEEL_BASE/config.json
+  MANIFEST_FILE=$FLYWHEEL_BASE/manifest.json
+
+  if [[ -f $CONFIG_FILE ]]; then
+    echo "$(cat $CONFIG_FILE | jq -r '.config.'$1)"
+  else
+    CONFIG_FILE=$MANIFEST_FILE
+    echo "$(cat $MANIFEST_FILE | jq -r '.config.'$1'.default')"
+  fi
+}
+
+config_output_nifti="$(parse_config 'output_nifti')"
+config_output_mgh="$(parse_config 'output_mgh')"
 
 
 ##############################################################################
