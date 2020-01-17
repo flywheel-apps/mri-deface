@@ -23,7 +23,7 @@ COPY manifest.json ${FLYWHEEL}/manifest.json
 RUN wget -N -qO- -O ${FLYWHEEL}/mri_deface.gz \
   ftp://surfer.nmr.mgh.harvard.edu/pub/dist/mri_deface/mri_deface-v1.22-Linux64.gz && \
   gunzip ${FLYWHEEL}/mri_deface.gz && \
-  chmod +x /flywheel/v0/mri_deface
+  chmod +x ${FLYWHEEL}/mri_deface
 
 RUN wget -N -qO- -O ${FLYWHEEL}/face.gca.gz \
   ftp://surfer.nmr.mgh.harvard.edu/pub/dist/mri_deface/face.gca.gz && \
