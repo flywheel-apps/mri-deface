@@ -34,9 +34,9 @@
   "cite": "Bischoff-Grethe A., Ozyurt I. B., Busa E., Quinn B. T., Fennema-Notestine C., Clark C. P., et al. (2007). A technique for the deidentification of structural brain MR images. 28 892–903. 10.1002/hbm.20312",
   "version": "0.3.0_1.22",
   "custom": {
-    "docker-image": "flywheel/mri-deface:0.3.0_1.22"
-  },
-  "flywheel": {
-    "suite": "FreeSurfer"
+    "docker-image": "flywheel/mri-deface:0.3.0_1.22",
+    "flywheel": {
+      "suite": "FreeSurfer"
+    }
   }
 }
